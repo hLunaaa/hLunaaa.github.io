@@ -1,0 +1,48 @@
+---
+layout: post
+title:  "PageView64 Dynamic IA32e Paging Structure Explorer"
+date:   2025-04-17 07:19:42 +0200
+---
+
+For a long time I struggled to visualize `IA32e` paging structures in my head. I always viewed paging as redundant. Indeed, four-level paging is largely irrelevant on modern systems. We can have virtual addressing without paging. We can have protection without paging. Heck, we can even have session spacing and virtualization based security. 
+
+The memory efficiency argument is an empty one, but there isn't much reason for Microsoft and other `OS` vendors to redesign both `MMU` and `OS` for minimal gains. It's not like they care about the sanity of programmers to begin with.
+
+Interacting with the underlying, physical memory directly is far more powerful than only dealing with `VA`. We are able to ignore address spaces and page protection. Additionally, we can allocate our own memory by constructing four-level paging structures in the same way the `OS` does. Thus, we can hide our memory from the `Virtual Address Descriptor` or `VAD`.
+
+The following diagram describes the layout of an `IA32e` virtual address.
+
+![IA32e Paging Overview](/assets/4_level_paging.png)
+
+Each page table is a list of `512` addresses. The first `256` are reserved for user addresses. IA32e currently supports four-level paging. This means there are four page tables. Four tables of `512` addresses. Also consider that `512 * sizeof(uintptr_t) == PAGE_SIZE`. In a perfect world where large pages do not exist, we could simply assume a page table entry exist for every index in the virtual address. The base physical address for the highest level page table, in our case `PML4`, is pointed to by `EPROCESS.DirectoryTableBase`. We can read the `0x1000` bytes to get the entire page table.
+
+This is also how session spacing works. When an a scheduled thread is about to swap context into a different process address space, the `CR3` is set. When the `CPU` wants to translate a physical address, it first checks if the translation already exists in cache - the `Translation Lookaside Buffer` or `TLB`. If it doesn't hit, it walks the tables just like us.
+
+In my opinion, 'sophisticated' malware should never interact with virtual memory. To date, I have not seen any proper implementation of paging abuse in popular malware.
+
+As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing the `INVLPG` instruction.
+
+A word on naming conventions. Four-level paging is implemented in both IA32e and AMD64, but with different naming scheme. This often causes confusion. I will simplify to `PML4`, `PML3`, `PML2` and `PML1`. Appending `e` refers to one of `512` entries in a page table.
+
+Ignoring large pages, we could translate a virtual address with something like this.
+
+{% highlight C++ %}
+u8* vtop(EPROCESS* proc, va_t va)
+{
+  // read from proc, but if it is currentproc we can obv __readcr3
+  // procs can also obscure the DirectoryTableBase with tricks
+  pml4_t pml4 = read<ph>(proc->DirectoryTableBase);
+  pml3_t pml3 = read<ph>(pml4[va.pml4_idx].pfn);
+  pml2_t pml2 = read<ph>(pml3[va.pml3_idx].pfn);
+  pml1_t pml1 = read<ph>(pml2[va.pml2_idx].pfn);
+
+  // we also assume all pages are paged-in (present=1)...
+  return (u8*)read<ph>(pml1[va.pml1_idx].pfn + va.offset);
+}
+{% endhighlight %}
+
+Intuitively you'd think to walk the page maps like what is shown above. However, both `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or the large page directly. Similarly, entries in `PML2` might describe the `PML1` or a large page directly. We can check for large page by checking the `PageSize == 1` bit. Thus, we can do the above, but simply return as soon as we hit a large page. I leave this as an exercise to the reader.
+
+`PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver simply calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `0x1000` long page tables. The client uses `SFML` with `ImGui`.
+
+<video width="740" controls="controls"><source src="/assets/PageView64.mp4"></video>
