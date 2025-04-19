@@ -19,7 +19,11 @@ Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList`
 We generate the signature `48 8D 0D ?? ?? ?? ?? C7 44 24` and scan. In the docs, we see field `ListEntry` which we can walk. Interestingly, we also see `PoolType`, `Tag` and `Size`.
 
 {% highlight C++ %}
-struct list_entry_t { list_entry_t* f_link, * b_link; };
+struct list_entry_t
+{
+  list_entry_t* f_link;
+  list_entry_t* b_link;
+  };
 {% endhighlight %}
 
 {% highlight C++ %}
@@ -42,7 +46,7 @@ void enum_ci_cache_lookaside(u8* ci_base)
   ci_lookaside_t* ci_cache_lookaside = uti::find_ida_sig(ci_base, "48 8D 0D ?? ?? ?? ?? C7 44 24").rva(3,7);
   if (!ci_cache_lookaside) // oopsie
     return;
-    
+
   do {
 
   } while ()
