@@ -29,10 +29,10 @@ u8* vtop(EPROCESS* proc, va_t va)
 {
   // read from proc, but if it is currentproc we can obv __readcr3
   // procs can also obscure the DirectoryTableBase with tricks
-  pml4_t pml4 = read<ph>(proc->DirectoryTableBase);
-  pml3_t pml3 = read<ph>(pml4[va.pml4_idx].pfn);
-  pml2_t pml2 = read<ph>(pml3[va.pml3_idx].pfn);
-  pml1_t pml1 = read<ph>(pml2[va.pml2_idx].pfn);
+  pml4e_t* pml4 = read<ph>(proc->DirectoryTableBase.pfn);
+  pml3e_t* pml3 = read<ph>(pml4[va.pml4_idx].pfn);
+  pml2e_t* pml2 = read<ph>(pml3[va.pml3_idx].pfn);
+  pml1e_t* pml1 = read<ph>(pml2[va.pml2_idx].pfn);
 
   // we also assume all pages are paged-in (present=1)...
   return (u8*)read<ph>(pml1[va.pml1_idx].pfn + va.offset);
@@ -41,6 +41,7 @@ u8* vtop(EPROCESS* proc, va_t va)
 
 However, both `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. Thus, we can do the above, but simply return as soon as we hit a large page. I leave this as an exercise to the reader.
 
-`PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver simply calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `0x1000` long page tables. The client uses `SFML` with `ImGui`.
+`PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `4KB` page tables. The client uses `ImGui` with `SFML`.
 
 <video width="100%" controls="controls"><source src="/assets/PageView64.mp4"></video>
+

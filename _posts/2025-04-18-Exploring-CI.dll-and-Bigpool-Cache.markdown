@@ -14,6 +14,8 @@ We navigate to `CiValidateImageHeader()` and follow the call into `CiInitializeP
 
 Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList` with a call to `ExInitializePagedLookasideList()` which has type `PAGED_LOOKASIDE_LIST`. See [documentation.](https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST)
 
+![ExInitializePagedLookasideList Usage](/assets/image.png)
+
 As of `Win11`, this struct has guhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
 
 {% highlight C++ %}

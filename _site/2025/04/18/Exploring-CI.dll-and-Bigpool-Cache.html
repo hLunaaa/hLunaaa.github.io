@@ -57,6 +57,8 @@
 
 <p>Here, in <code class="language-plaintext highlighter-rouge">CiInitializePhase2()</code>, <code class="language-plaintext highlighter-rouge">CI.dll</code> creates the <code class="language-plaintext highlighter-rouge">g_CiEaCacheLookasideList</code> with a call to <code class="language-plaintext highlighter-rouge">ExInitializePagedLookasideList()</code> which has type <code class="language-plaintext highlighter-rouge">PAGED_LOOKASIDE_LIST</code>. See <a href="https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST">documentation.</a></p>
 
+<p><img src="/assets/image.png" alt="ExInitializePagedLookasideList Usage" /></p>
+
 <p>As of <code class="language-plaintext highlighter-rouge">Win11</code>, this struct has guhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh</p>
 
 <figure class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="kt">void</span> <span class="nf">loop_draw_esp</span><span class="p">(</span><span class="n">u8</span><span class="o">*</span> <span class="n">game</span><span class="p">)</span>
