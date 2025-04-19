@@ -16,30 +16,38 @@ Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList`
 
 ![ExInitializePagedLookasideList Usage](/assets/image.png)
 
-As of `Win11`, this struct has guhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+We generate the signature `48 8D 0D ?? ?? ?? ?? C7 44 24` and scan. In the docs, we see field `ListEntry` which we can walk. Interestingly, we also see `PoolType`, `Tag` and `Size`.
 
 {% highlight C++ %}
-void loop_draw_esp(u8* game)
+struct list_entry_t { list_entry_t* f_link, * b_link; };
+{% endhighlight %}
+
+{% highlight C++ %}
+#pragma pack(push, 1)
+struct ci_lookaside_t
 {
-  u32 hdc = GetDC(0); // lazy, grab the entire screen
-  if (!hdc)
+  u8 pad0[0x24];
+  u32 type;                 // +0x24
+  u32 tag;                  // +0x28
+  u32 size;                 // +0x2c
+  u8 pad1[0x10];
+  list_entry_t link;        // +0x40
+};
+#pragma pack(pop)
+{% endhighlight %}
+
+{% highlight C++ %}
+void enum_ci_cache_lookaside(u8* ci_base)
+{
+  ci_lookaside_t* ci_cache_lookaside = uti::find_ida_sig(ci_base, "48 8D 0D ?? ?? ?? ?? C7 44 24").rva(3,7);
+  if (!ci_cache_lookaside) // oopsie
     return;
+    
+  do {
 
-  if(*(u32*)(game + 0x5164) == 0) // should clock start (is playing?)
-    return;
-
-  u32 win_x = *(u32*)(game + 0x56B0) + 18;
-  u32 win_y = *(u32*)(game + 0x56B4) + 105; // window pos + offset to tile grid
-
-  for (u32 y = 1; y <= *(u32*)(game + 0x5338); y++)
-  for (u32 x = 1; x <= *(u32*)(game + 0x5334); x++) // walk coords
-  {
-    u32 tile = (game + 0x5340)[32 * y + x];
-    if (tile & 0x80u) // has bomb?
-      draw_tile(hdc, win_x + (x - 1) * 15, win_y + (y - 1) * 15, RGB(255, 0, 0));
-  }
-
-  ReleaseDC(0, hdc);
-  Sleep(5);
+  } while ()
+  // get src
+  // walk until dst
+  // sex3?
 }
 {% endhighlight %}
