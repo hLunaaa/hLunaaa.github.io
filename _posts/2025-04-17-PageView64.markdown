@@ -29,13 +29,13 @@ u8* vtop(EPROCESS* proc, va_t va)
 {
   // read from proc, but if it is currentproc we can obv __readcr3
   // procs can also obscure the DirectoryTableBase with tricks
-  pml4e_t* pml4 = read<ph>(proc->DirectoryTableBase.pfn);
-  pml3e_t* pml3 = read<ph>(pml4[va.pml4_idx].pfn);
-  pml2e_t* pml2 = read<ph>(pml3[va.pml3_idx].pfn);
-  pml1e_t* pml1 = read<ph>(pml2[va.pml2_idx].pfn);
+  pml4e_t* pml4 = read_page(proc->DirectoryTableBase.pfn);
+  pml3e_t* pml3 = read_page(pml4[va.pml4_idx].pfn);
+  pml2e_t* pml2 = read_page(pml3[va.pml3_idx].pfn);
+  pml1e_t* pml1 = read_page(pml2[va.pml2_idx].pfn);
 
   // we also assume all pages are paged-in (present=1)...
-  return (u8*)read<ph>(pml1[va.pml1_idx].pfn + va.offset);
+  return (u8*)(pml1[va.pml1_idx].pfn + va.offset);
 }
 {% endhighlight %}
 
