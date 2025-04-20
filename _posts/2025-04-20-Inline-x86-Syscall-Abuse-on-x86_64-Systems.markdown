@@ -56,3 +56,5 @@ u32 nt_make_call(arg_t... args)
   return ret_status;
 }
 {% endhighlight %}
+
+With this method, we are able to call syscalls on the go without calling the `ntdll` trampoline methods. I leave further analysis of `Wow64Transition` as an exercise to the reader.
