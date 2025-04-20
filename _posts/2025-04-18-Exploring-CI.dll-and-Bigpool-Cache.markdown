@@ -12,19 +12,13 @@ We navigate to `CiValidateImageHeader()` and follow the call into `CiInitializeP
 
 ![CiInitializePhase2 Call](/assets/{7E18B9B6-F4C0-4701-A08C-B2A6CF97B269}.png)
 
-Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList` with a call to `ExInitializePagedLookasideList()` which has type `PAGED_LOOKASIDE_LIST`. See [documentation.](https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST)
+Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList` with a call to `ExInitializePagedLookasideList()` which has type `PAGED_LOOKASIDE_LIST`. See [documentation.](https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST) This lookaside list tracks paged big pool (heap) allocations.
+
+Insiders are already aware that there are two (well, three) pool allocators: regular and big allocator. The regular allocator is used for any allocation less than or equal to a page in size, including the 32 byte pool header and initial free block. Big pool allocator is used when the size is more than one page, or when the pool type is `CacheAligned`. Crucially, big pool allocations dont have room for headers, and are instead tracked in the `PoolBigTable`.
 
 ![ExInitializePagedLookasideList Usage](/assets/image.png)
 
-We generate the signature `48 8D 0D ?? ?? ?? ?? C7 44 24` and scan. In the docs, we see field `ListEntry` which we can walk. Interestingly, we also see `PoolType`, `Tag` and `Size`.
-
-{% highlight C++ %}
-struct list_entry_t
-{
-  list_entry_t* f_link;
-  list_entry_t* b_link;
-  };
-{% endhighlight %}
+In the docs, we see field `ListEntry` which we use to iterate over the list. Interestingly, we also see `PoolType`, `Tag` and `Size`. We generate the signature `48 8D 0D ?? ?? ?? ?? C7 44 24` and walk.
 
 {% highlight C++ %}
 #pragma pack(push, 1)
@@ -43,15 +37,27 @@ struct ci_lookaside_t
 {% highlight C++ %}
 void enum_ci_cache_lookaside(u8* ci_base)
 {
-  ci_lookaside_t* ci_cache_lookaside = uti::find_ida_sig(ci_base, "48 8D 0D ?? ?? ?? ?? C7 44 24").rva(3,7);
-  if (!ci_cache_lookaside) // oopsie
+  auto ci_cache = uti::ida_sig<ci_lookaside_t*>(ci_base, "48 8D 0D ?? ?? ?? ?? C7 44 24").rva(3,7);
+  if (!ci_cache) // oopsie                                             	^^^^^^^^^^^
     return;
+  
+  for (auto it = ci_cache->link.f; it != &ci_cache->link; it = it->f)
+  {
+    auto it_entry = (ci_lookaside_t*)((u8*)(it) - 0x40); // link is +0x40
+    if (!it_entry)
+      continue;
 
-  do {
-
-  } while ()
-  // get src
-  // walk until dst
-  // sex3?
+    auto it_tag = (u8*)(&it_entry->tag);
+    DbgPrintEx(0, 0, "-- size: %6X type: %4X tag: %c%c%c%c\n",
+      it_entry->size, it_entry->type, it_tag[0], it_tag[1], it_tag[2], it_tag[3]);
+  }
 }
 {% endhighlight %}
+
+We load the driver and run it. The type is `POOL_TYPE`, which is [documented.](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_pool_type) The output shows many `PagedPool` entries with varying sizes. `CI.dll` keeps track of a lot of interesting telemetry. There are many lists like `g_BootDriverList`, `g_CiValidationLookasideList`, `g_KernelHashBucketList` and `g_KernelHashBucketList`.
+
+![Output](/assets/{83E0EFE6-C7EE-420A-92C1-590E6A2EE129}.png)
+
+The traditional way of dealing dealing with these lists is locking, deleting and creating them with `ExDeleteLookasideListEx()` and `ExInitializeLookasideListEx()`. But clearing lists which would otherwise include reference to legitimate drivers is suspicious. Indeed, the best approach is to walk every relevant list and unlinking references to your vulnerable driver.
+
+In addition, `ntoskrnl` tracks additional telemetry like `PiDDBCacheTable`, `MmLastUnloadedDriver`, `MmUnloadedDrivers`. The more you dig, the more you uncover. All these lists, caches and trees are potential detection vectors. Advanced malware and cheats should consider all of them and more.
