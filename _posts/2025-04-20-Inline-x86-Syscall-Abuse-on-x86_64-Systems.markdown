@@ -17,16 +17,42 @@ The routine first places the syscall index into `EAX`. It then does something pe
 We want to retrieve the address of this function, place the syscall id in `EAX`, dynamically fix the stack and return. Instead of calling the `ntdll` export, we avoid any hooks, filters and callbacks and instead ship the call straight to kernel. We can do this by allocating executable memory, setting up the function and calling it on the go.
 
 {% highlight C++ %}
-__declspec(naked) u64 issue_syscall_stub(u64 wow64)
+u64 nt_wow64_transition(u8* nt_base)
 {
-  __asm {
-    mov eax, 24
-    mov edx, wow64
-    call edx
-    retn 24
-  }
+  // 1. vv vv vv vv
+  // BA A0 A0 31 4B       mov     edx, 4B31A0A0h
+  // FF D2                call    edx
+
+  // 2.    vv vv vv vv
+  // FF 25 24 22 3B 4B    jmp      ds:_Wow64Transition
+  return *uti::ida_sig<u64*>("BA ?? ?? ?? ?? FF D2 C2 34 00").rva(1, 0).rva(2, 0);
 }
 
+template<u32 id, typename... arg_t>
+u32 nt_make_call(arg_t... args)
+{
+  u8 call_stub[15] = {
+    0xb8, 0x00, 0x00, 0x00, 0x00,  // mov eax, ?? ?? ?? ??
+    0xba, 0x00, 0x00, 0x00, 0x00,  // mov edx, ?? ?? ?? ??
+    0xff, 0xd2,                    // call edx
+    0xc2, 0x00, 0x00               // retn ?? ??
+  };
 
+  auto mem_alloc = VirtualAlloc(0, sizeof(call_stub), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+  if (!mem_alloc)
+    return STATUS_UNSUCCESSFUL;
 
+  *(u32*)(&call_stub[0x1]) = id;
+  *(u32*)(&call_stub[0x6]) = nt_wow64_transition(LoadLibraryA("ntdll.dll")); // get wow64 translation
+  *(u16*)(&call_stub[0xd]) = (sizeof(arg_t) + ...);
+
+  for (size_t i = 0; i < sizeof(call_stub); i++) mem_alloc[i] = call_stub[i]; // write stub to RWX alloc
+
+  auto ret_status = (u32(__stdcall*)(arg_t...))(args...);
+
+  if (!VirtualFree(mem_alloc, sizeof(call_stub), MEM_RELEASE | MEM_DECOMMIT))
+    return STATUS_UNSUCCESSFUL;
+
+  return ret_status;
+}
 {% endhighlight %}
