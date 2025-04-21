@@ -43,7 +43,7 @@ void enum_ci_cache_lookaside(u8* ci_base)
   
   for (auto it = ci_cache->link.f; it != &ci_cache->link; it = it->f)
   {
-    auto it_entry = (ci_lookaside_t*)((u8*)(it) - 0x40); // link is +0x40
+    auto it_entry = CONTAINING_RECORD(it, ci_lookaside_t, link);
     if (!it_entry)
       continue;
 
