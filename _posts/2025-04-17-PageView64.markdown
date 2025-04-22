@@ -25,17 +25,19 @@ A word on naming conventions. Four-level paging is implemented in both `IA32e` a
 Ignoring large pages, we could translate a virtual address with something like this.
 
 {% highlight C++ %}
-u8* vtop(EPROCESS* proc, va_t va)
+#define __pfn_to_page(pfn) (pfn << __page_shift)
+
+u8* vtop(EPROCESS* proc, virt_addr_t va)
 {
   // read from proc, but if it is currentproc we can obv __readcr3
   // procs can also obscure the DirectoryTableBase with tricks
-  pml4e_t* pml4 = read_page(proc->DirectoryTableBase.pfn);
-  pml3e_t* pml3 = read_page(pml4[va.pml4_idx].pfn);
-  pml2e_t* pml2 = read_page(pml3[va.pml3_idx].pfn);
-  pml1e_t* pml1 = read_page(pml2[va.pml2_idx].pfn);
+  pml4e_t* pml4 = read<PAGE_SIZE>(__pfn_to_page(proc->DirectoryTableBase.pfn));
+  pml3e_t* pml3 = read<PAGE_SIZE>(__pfn_to_page(pml4[va.pml4_idx].pfn));
+  pml2e_t* pml2 = read<PAGE_SIZE>(__pfn_to_page(pml3[va.pml3_idx].pfn));
+  pml1e_t* pml1 = read<PAGE_SIZE>(__pfn_to_page(pml2[va.pml2_idx].pfn));
 
   // we also assume all pages are paged-in (present=1)...
-  return (u8*)(pml1[va.pml1_idx].pfn + va.offset);
+  return (u8*)(__pfn_to_page(pml1[va.pml1_idx].pfn) + va.offset);
 }
 {% endhighlight %}
 
