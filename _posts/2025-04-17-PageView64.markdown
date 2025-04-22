@@ -46,4 +46,3 @@ However, both `PML3` and `PML2` have large page entries, describing `1GB` and `2
 `PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `4KB` page tables. The client uses `ImGui` with `SFML`.
 
 <video width="100%" controls="controls"><source src="/assets/PageView64.mp4"></video>
-
