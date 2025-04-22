@@ -25,7 +25,7 @@ u64 nt_wow64_transition(u8* nt_base)
 
   // 2.    vv vv vv vv
   // FF 25 24 22 3B 4B    jmp      ds:_Wow64Transition
-  return *uti::ida_sig<u64*>("BA ?? ?? ?? ?? FF D2 C2 34 00").rva(1, 0).rva(2, 0);
+  return *uti::ida_sig<u64*>("BA ?? ?? ?? ?? FF D2 C2 34 00").ref(1).ref(2);
 }
 
 template<u32 id, typename... arg_t>
