@@ -52,7 +52,7 @@ u8* vtop(EPROCESS* proc, virt_addr_t va)
 }
 {% endhighlight %}
 
-Both `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. I leave large page translation as an exercise to the reader.
+If `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\LargePageDrivers` is set, `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. I leave large page translation as an exercise to the reader.
 
 `PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `4KB` page tables. The client uses `ImGui` with `SFML`.
 
