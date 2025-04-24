@@ -22,7 +22,7 @@ As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing t
 
 A word on naming conventions. Four-level paging is implemented in both `IA32e` and `AMD64`, but with different naming schemes. This often leads to confusion. In this paper we simplify to `PML4`, `PML3`, `PML2` and `PML1`.
 
-Ignoring large pages, we could translate a virtual address with something like this.
+We translate by walking down the chain.
 
 {% highlight C++ %}
 #define _pfn_to_page(pfn) (pfn << _page_shift)
@@ -31,17 +31,28 @@ u8* vtop(EPROCESS* proc, virt_addr_t va)
 {
   // read from proc, but if it is currentproc we can obv __readcr3
   // procs can also obscure the DirectoryTableBase with tricks
-  pml4e_t* pml4 = read(_pfn_to_page(proc->DirectoryTableBase.pfn));
-  pml3e_t* pml3 = read(_pfn_to_page(pml4[va.pml4_idx].pfn));
-  pml2e_t* pml2 = read(_pfn_to_page(pml3[va.pml3_idx].pfn));
-  pml1e_t* pml1 = read(_pfn_to_page(pml2[va.pml2_idx].pfn));
+  pml4e_t pml4e = read<pml4e_t>(_pfn_to_page(proc->DirectoryTableBase.pfn) + va.pml4_idx * sizeof(pml4e_t));
+  if (!pml4e.present)
+    return 0;
+  
+  pml3e_t pml3e = read<pml3e_t>(_pfn_to_page(pml4e.pfn) + va.pml3_idx * sizeof(pml3e_t))>
+  if (!pml3e.present)
+    return 0;
 
-  // we also assume all pages are paged-in (present=1)...
-  return (u8*)(_pfn_to_page(pml1[va.pml1_idx].pfn) + va.offset);
+  pml2e_t pml2e = read<pml2e_t>(_pfn_to_page(pml3e.pfn) + va.pml2_idx * sizeof(pml2e_t))>
+  if (!pml2e.present)
+    return 0;
+
+  pml1e_t pml1e = read<pml1e_t>(_pfn_to_page(pml2e.pfn) + va.pml1_idx * sizeof(pml1e_t))>
+  if (!pml1e.present)
+    return 0;
+  
+  // finally return pfn + page offset...
+  return (u8*)(_pfn_to_page(pml1e.pfn) + va.offset);
 }
 {% endhighlight %}
 
-However, both `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. Thus, we can do the above, but simply return as soon as we hit a large page. I leave this as an exercise to the reader.
+Both `PML3` and `PML2` have large page entries, describing `1GB` and `2MB` pages respectively. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. I leave large page translation as an exercise to the reader.
 
 `PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `4KB` page tables. The client uses `ImGui` with `SFML`.
 
