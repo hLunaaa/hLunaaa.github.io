@@ -18,7 +18,7 @@ Each page table is a list of `512` addresses. The first `256` are reserved for u
 
 Paging relates to session spacing. When a thread goes from one address space to another via `SwapContext`, the `CR3` is set. When the `CPU` wants to translate a physical address, it first checks if the translation already exists in the `Translation Lookaside Buffer` or `TLB`. If no translation exists, it walks the page tables.
 
-As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing the `INVLPG` instruction.
+As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing the `INVLPG` instruction. User mode applications can use `SwitchToThread()` to force a context switch.
 
 A word on naming conventions. Four-level paging is implemented in both `IA32e` and `AMD64`, but with different naming schemes. This often leads to confusion. In this paper we simplify to `PML4`, `PML3`, `PML2` and `PML1`.
 
