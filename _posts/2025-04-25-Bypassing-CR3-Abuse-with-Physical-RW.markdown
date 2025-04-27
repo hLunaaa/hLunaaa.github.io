@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Bypassing CR3 Abuse"
+title:  "Bypassing CR3 Abuse with Physical R/W"
 date:   2025-04-25 09:12:29 +0200
 ---
 
