@@ -5,7 +5,7 @@ date:   2025-04-17 07:19:42 +0200
 ---
 
 >Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces.
-- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
+<br>- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
 
 <br>
 ### __Rationale__
@@ -26,7 +26,7 @@ Each page table is a list of `512` addresses. The first `256` are reserved for u
 Paging relates to session spacing. When a thread goes from one address space to another via `SwapContext`, the `CR3` is set. When the `CPU` wants to translate a physical address, it first checks if the translation already exists in the `Translation Lookaside Buffer` or `TLB`. If no translation exists, it walks the page tables.
 
 >Paging in long mode is similar to that of 32-bit paging, except Physical Address Extension (PAE) is required. Registers CR2 and CR3 are extended to 64 bits. Instead of just having to utilize 3 levels of page maps: page directory pointer table, page directory, and page table, a fourth page-map table is used: the level-4 page map table (PML4). This allows a processor to map 48-bit virtual addresses to 52-bit physical addresses.
-- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
+<br>- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
 
 As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing the `INVLPG` instruction. User mode applications can use `SwitchToThread()` to force a context switch.
 

@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="PageView64 Dynamic IA32e Paging Structure Explorer" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. OSDev Wiki" />
-<meta property="og:description" content="Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. OSDev Wiki" />
+<meta name="description" content="Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. - OSDev Wiki" />
+<meta property="og:description" content="Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. - OSDev Wiki" />
 <link rel="canonical" href="http://localhost:4000/2025/04/17/PageView64.html" />
 <meta property="og:url" content="http://localhost:4000/2025/04/17/PageView64.html" />
 <meta property="og:site_name" content="hLunaaa" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="PageView64 Dynamic IA32e Paging Structure Explorer" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-17T07:19:42+02:00","datePublished":"2025-04-17T07:19:42+02:00","description":"Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. OSDev Wiki","headline":"PageView64 Dynamic IA32e Paging Structure Explorer","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/17/PageView64.html"},"url":"http://localhost:4000/2025/04/17/PageView64.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-17T07:19:42+02:00","datePublished":"2025-04-17T07:19:42+02:00","description":"Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces. - OSDev Wiki","headline":"PageView64 Dynamic IA32e Paging Structure Explorer","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/17/PageView64.html"},"url":"http://localhost:4000/2025/04/17/PageView64.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="hLunaaa" /></head>
 <body><header class="site-header" role="banner">
@@ -48,10 +48,8 @@
 
   <div class="post-content e-content" itemprop="articleBody">
     <blockquote>
-  <p>Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces.</p>
-  <ul>
-    <li><a href="https://wiki.osdev.org/Paging#64-Bit_Paging">OSDev Wiki</a></li>
-  </ul>
+  <p>Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces.
+<br />- <a href="https://wiki.osdev.org/Paging#64-Bit_Paging">OSDev Wiki</a></p>
 </blockquote>
 
 <p><br /></p>
@@ -73,10 +71,8 @@
 <p>Paging relates to session spacing. When a thread goes from one address space to another via <code class="language-plaintext highlighter-rouge">SwapContext</code>, the <code class="language-plaintext highlighter-rouge">CR3</code> is set. When the <code class="language-plaintext highlighter-rouge">CPU</code> wants to translate a physical address, it first checks if the translation already exists in the <code class="language-plaintext highlighter-rouge">Translation Lookaside Buffer</code> or <code class="language-plaintext highlighter-rouge">TLB</code>. If no translation exists, it walks the page tables.</p>
 
 <blockquote>
-  <p>Paging in long mode is similar to that of 32-bit paging, except Physical Address Extension (PAE) is required. Registers CR2 and CR3 are extended to 64 bits. Instead of just having to utilize 3 levels of page maps: page directory pointer table, page directory, and page table, a fourth page-map table is used: the level-4 page map table (PML4). This allows a processor to map 48-bit virtual addresses to 52-bit physical addresses.</p>
-  <ul>
-    <li><a href="https://wiki.osdev.org/Paging#64-Bit_Paging">OSDev Wiki</a></li>
-  </ul>
+  <p>Paging in long mode is similar to that of 32-bit paging, except Physical Address Extension (PAE) is required. Registers CR2 and CR3 are extended to 64 bits. Instead of just having to utilize 3 levels of page maps: page directory pointer table, page directory, and page table, a fourth page-map table is used: the level-4 page map table (PML4). This allows a processor to map 48-bit virtual addresses to 52-bit physical addresses.
+<br />- <a href="https://wiki.osdev.org/Paging#64-Bit_Paging">OSDev Wiki</a></p>
 </blockquote>
 
 <p>As a sidenote, you can flush the <code class="language-plaintext highlighter-rouge">TLB</code> by toggling the <code class="language-plaintext highlighter-rouge">CR4.PGE</code> bit or firing the <code class="language-plaintext highlighter-rouge">INVLPG</code> instruction. User mode applications can use <code class="language-plaintext highlighter-rouge">SwitchToThread()</code> to force a context switch.</p>
