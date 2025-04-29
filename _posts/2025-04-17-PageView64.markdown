@@ -4,6 +4,11 @@ title:  "PageView64 Dynamic IA32e Paging Structure Explorer"
 date:   2025-04-17 07:19:42 +0200
 ---
 
+>Paging is a system which allows each process to see a full virtual address space, without actually requiring the full amount of physical memory to be available or present. 32-bit x86 processors support 32-bit virtual addresses and 4-GiB virtual address spaces, and current 64-bit processors support 48-bit virtual addressing and 256-TiB virtual address spaces.
+- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
+
+<br>
+### __Rationale__
 For a long time I struggled to visualize `IA32e` paging structures in my head. I always viewed paging as redundant. You'd think paging redundant on modern systems. Indeed, it is possible to implement virtual addressing, protection and session spacing with identity mapping.
 
 The argument for memory efficiency is also not very convincing, but there aren't many reasons for Microsoft to mess with things that already work well enough, not to mention that paging as a concept is more a vertical issue than just software alone.
@@ -16,7 +21,12 @@ The following diagram describes the layout of an `IA32e` virtual address.
 
 Each page table is a list of `512` addresses. The first `256` are reserved for user addresses. There are four page tables. Also consider that `512 * sizeof(uintptr_t) == PAGE_SIZE`. The base physical address of the `PML4` is described by `EPROCESS.DirectoryTableBase`.
 
+<br>
+### __Address Translation__
 Paging relates to session spacing. When a thread goes from one address space to another via `SwapContext`, the `CR3` is set. When the `CPU` wants to translate a physical address, it first checks if the translation already exists in the `Translation Lookaside Buffer` or `TLB`. If no translation exists, it walks the page tables.
+
+>Paging in long mode is similar to that of 32-bit paging, except Physical Address Extension (PAE) is required. Registers CR2 and CR3 are extended to 64 bits. Instead of just having to utilize 3 levels of page maps: page directory pointer table, page directory, and page table, a fourth page-map table is used: the level-4 page map table (PML4). This allows a processor to map 48-bit virtual addresses to 52-bit physical addresses.
+- [OSDev Wiki](https://wiki.osdev.org/Paging#64-Bit_Paging)
 
 As a sidenote, you can flush the `TLB` by toggling the `CR4.PGE` bit or firing the `INVLPG` instruction. User mode applications can use `SwitchToThread()` to force a context switch.
 
@@ -52,8 +62,11 @@ u8* vtop(EPROCESS* proc, virt_addr_t va)
 }
 {% endhighlight %}
 
-Both `PML3` and `PML2` can have large page entries, describing `1GB` and `2MB` pages respectively if `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\LargePageDrivers` is set. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize == 1` bit. I leave large page translation as an exercise to the reader.
+Both `PML3` and `PML2` can have large page entries, describing `1GB` and `2MB` pages respectively if `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\LargePageDrivers` is set. This is all outlined in my [header file.](https://gist.github.com/hLunaaa/f23a48775bbe5425b4825eefcebf1197) We call these `PML3e_LARGE` and `PML2e_LARGE`. So in page table `PML3`, entries can describe the `PML2` or a `1GB` page directly. Similarly, entries in `PML2` might describe the `PML1` or a `2MB` page directly. We can check for large page by checking the `PageSize` bit. I leave large page translation as an exercise to the reader.
 
+<br>
+
+### __Demonstration__
 `PageView64` was created to visualize these structures. The program consists of the `PageView64.sys` driver and `PageView64.exe` client. The driver calls `MmCopyMemory` on `IRP`. We send the process ID and receive the `4KB` page tables. The client uses `ImGui` with `SFML`.
 
 <video width="100%" controls="controls"><source src="/assets/PageView64.mp4"></video>
