@@ -3,6 +3,10 @@ layout: post
 title:  "Exploring CI.dll and Bigpool Cache"
 date:   2025-04-18 03:12:41 +0200
 ---
+<br>
+### __Rationale__
+
+Various kernel mappers like `KDMapper` use vulnerable drivers to load unsigned code into the kernel. If the driver does not already exist on the system, this is achieved by either creating a temporary file from embedded or streamed bytes in the first stage of the payload. Loading the driver leaves traces and telemetry in the `OS` that can be used in forensic analysis. As a result, sophisticated developers use techniques to clear as many of these traces as possible. In this post we briefly give an introduction to code integrity telemetry and image validation, as well as some other known traces and lists.
 
 The `CI.dll` integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling `CiInitialize()`, which returns the `g_CiCallbacks` array. This list of callbacks is then used elsewhere in the kernel. For example, `CiValidateImageHeader()` is called when a driver is loaded to verify its signature.
 
@@ -13,6 +17,9 @@ We navigate to `CiValidateImageHeader()` and follow the call into `CiInitializeP
 ![CiInitializePhase2 Call](/assets/{7E18B9B6-F4C0-4701-A08C-B2A6CF97B269}.png)
 
 Here, in `CiInitializePhase2()`, `CI.dll` creates the `g_CiEaCacheLookasideList` with a call to `ExInitializePagedLookasideList()` which has type `PAGED_LOOKASIDE_LIST`. See [documentation.](https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST) This lookaside list tracks paged big pool (heap) allocations.
+
+<br>
+### __A Word on Pool Allocations__
 
 Insiders are already aware that there are two (well, three) pool allocators: regular and big allocator. The regular allocator is used for any allocation less than or equal to a page in size, including the 32 byte pool header and initial free block. Big pool allocator is used when the size is more than one page, or when the pool type is `CacheAligned`. Crucially, big pool allocations dont have room for headers, and are instead tracked in the `PoolBigTable`.
 
@@ -57,6 +64,9 @@ void enum_ci_cache_lookaside(u8* ci_base)
 We load the driver and run it. The type is `POOL_TYPE`, which is [documented.](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_pool_type) The output shows many `PagedPool` entries with varying sizes. `CI.dll` keeps track of a lot of interesting telemetry. There are many lists like `g_BootDriverList`, `g_CiValidationLookasideList`, `g_KernelHashBucketList` and `g_KernelHashBucketList`.
 
 ![Output](/assets/{83E0EFE6-C7EE-420A-92C1-590E6A2EE129}.png)
+
+<br>
+### __The Bottom Line__
 
 The traditional way of dealing dealing with these lists is locking, deleting and creating them with `ExDeleteLookasideListEx()` and `ExInitializeLookasideListEx()`. But clearing lists which would otherwise include reference to legitimate drivers is suspicious. Indeed, the best approach is to walk every relevant list and unlinking references to your vulnerable driver.
 

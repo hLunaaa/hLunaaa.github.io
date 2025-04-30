@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="Exploring CI.dll and Bigpool Cache" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="The CI.dll integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling CiInitialize(), which returns the g_CiCallbacks array. This list of callbacks is then used elsewhere in the kernel. For example, CiValidateImageHeader() is called when a driver is loaded to verify its signature." />
-<meta property="og:description" content="The CI.dll integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling CiInitialize(), which returns the g_CiCallbacks array. This list of callbacks is then used elsewhere in the kernel. For example, CiValidateImageHeader() is called when a driver is loaded to verify its signature." />
+<meta name="description" content="Rationale" />
+<meta property="og:description" content="Rationale" />
 <link rel="canonical" href="http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html" />
 <meta property="og:url" content="http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html" />
 <meta property="og:site_name" content="hLunaaa" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Exploring CI.dll and Bigpool Cache" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-18T03:12:41+02:00","datePublished":"2025-04-18T03:12:41+02:00","description":"The CI.dll integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling CiInitialize(), which returns the g_CiCallbacks array. This list of callbacks is then used elsewhere in the kernel. For example, CiValidateImageHeader() is called when a driver is loaded to verify its signature.","headline":"Exploring CI.dll and Bigpool Cache","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html"},"url":"http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-18T03:12:41+02:00","datePublished":"2025-04-18T03:12:41+02:00","description":"Rationale","headline":"Exploring CI.dll and Bigpool Cache","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html"},"url":"http://localhost:4000/2025/04/18/Exploring-CI.dll-and-Bigpool-Cache.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="hLunaaa" /></head>
 <body><header class="site-header" role="banner">
@@ -47,7 +47,12 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>The <code class="language-plaintext highlighter-rouge">CI.dll</code> integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling <code class="language-plaintext highlighter-rouge">CiInitialize()</code>, which returns the <code class="language-plaintext highlighter-rouge">g_CiCallbacks</code> array. This list of callbacks is then used elsewhere in the kernel. For example, <code class="language-plaintext highlighter-rouge">CiValidateImageHeader()</code> is called when a driver is loaded to verify its signature.</p>
+    <p><br /></p>
+<h3 id="rationale"><strong>Rationale</strong></h3>
+
+<p>Various kernel mappers like <code class="language-plaintext highlighter-rouge">KDMapper</code> use vulnerable drivers to load unsigned code into the kernel. If the driver does not already exist on the system, this is achieved by either creating a temporary file from embedded or streamed bytes in the first stage of the payload. Loading the driver leaves traces and telemetry in the <code class="language-plaintext highlighter-rouge">OS</code> that can be used in forensic analysis. As a result, sophisticated developers use techniques to clear as many of these traces as possible. In this post we briefly give an introduction to code integrity telemetry and image validation, as well as some other known traces and lists.</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">CI.dll</code> integrity module is responsible for authenticating and verifying the reliability of kernel modules. The kernel initializes it by calling <code class="language-plaintext highlighter-rouge">CiInitialize()</code>, which returns the <code class="language-plaintext highlighter-rouge">g_CiCallbacks</code> array. This list of callbacks is then used elsewhere in the kernel. For example, <code class="language-plaintext highlighter-rouge">CiValidateImageHeader()</code> is called when a driver is loaded to verify its signature.</p>
 
 <p><img src="/assets/{FD14D6FB-2AEC-4018-9882-8ABCDAAA56CF}.png" alt="CiValidateImageHeader Call Stack" /></p>
 
@@ -56,6 +61,9 @@
 <p><img src="/assets/{7E18B9B6-F4C0-4701-A08C-B2A6CF97B269}.png" alt="CiInitializePhase2 Call" /></p>
 
 <p>Here, in <code class="language-plaintext highlighter-rouge">CiInitializePhase2()</code>, <code class="language-plaintext highlighter-rouge">CI.dll</code> creates the <code class="language-plaintext highlighter-rouge">g_CiEaCacheLookasideList</code> with a call to <code class="language-plaintext highlighter-rouge">ExInitializePagedLookasideList()</code> which has type <code class="language-plaintext highlighter-rouge">PAGED_LOOKASIDE_LIST</code>. See <a href="https://www.vergiliusproject.com/kernels/x64/windows-11/24h2/_PAGED_LOOKASIDE_LIST">documentation.</a> This lookaside list tracks paged big pool (heap) allocations.</p>
+
+<p><br /></p>
+<h3 id="a-word-on-pool-allocations"><strong>A Word on Pool Allocations</strong></h3>
 
 <p>Insiders are already aware that there are two (well, three) pool allocators: regular and big allocator. The regular allocator is used for any allocation less than or equal to a page in size, including the 32 byte pool header and initial free block. Big pool allocator is used when the size is more than one page, or when the pool type is <code class="language-plaintext highlighter-rouge">CacheAligned</code>. Crucially, big pool allocations dont have room for headers, and are instead tracked in the <code class="language-plaintext highlighter-rouge">PoolBigTable</code>.</p>
 
@@ -96,6 +104,9 @@
 <p>We load the driver and run it. The type is <code class="language-plaintext highlighter-rouge">POOL_TYPE</code>, which is <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_pool_type">documented.</a> The output shows many <code class="language-plaintext highlighter-rouge">PagedPool</code> entries with varying sizes. <code class="language-plaintext highlighter-rouge">CI.dll</code> keeps track of a lot of interesting telemetry. There are many lists like <code class="language-plaintext highlighter-rouge">g_BootDriverList</code>, <code class="language-plaintext highlighter-rouge">g_CiValidationLookasideList</code>, <code class="language-plaintext highlighter-rouge">g_KernelHashBucketList</code> and <code class="language-plaintext highlighter-rouge">g_KernelHashBucketList</code>.</p>
 
 <p><img src="/assets/{83E0EFE6-C7EE-420A-92C1-590E6A2EE129}.png" alt="Output" /></p>
+
+<p><br /></p>
+<h3 id="the-bottom-line"><strong>The Bottom Line</strong></h3>
 
 <p>The traditional way of dealing dealing with these lists is locking, deleting and creating them with <code class="language-plaintext highlighter-rouge">ExDeleteLookasideListEx()</code> and <code class="language-plaintext highlighter-rouge">ExInitializeLookasideListEx()</code>. But clearing lists which would otherwise include reference to legitimate drivers is suspicious. Indeed, the best approach is to walk every relevant list and unlinking references to your vulnerable driver.</p>
 

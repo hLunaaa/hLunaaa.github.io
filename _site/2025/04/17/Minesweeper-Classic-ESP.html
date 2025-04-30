@@ -57,7 +57,7 @@
 
 <p><img src="/assets/{FB211914-8E66-435F-9BAD-01036C06A600}.png" alt="" /></p>
 
-<p>At this point it is quite clear what this function does. We loop over the bitmap, setting the bomb flag <code class="language-plaintext highlighter-rouge">0x80</code> at random using <code class="language-plaintext highlighter-rouge">rand</code>. We also see the bitmap stride <code class="language-plaintext highlighter-rouge">32 * Y + X</code>, with <code class="language-plaintext highlighter-rouge">X</code> and <code class="language-plaintext highlighter-rouge">Y</code> starting at <code class="language-plaintext highlighter-rouge">1</code>. With this information, we are able to read the bitmap and check for bomb flags.</p>
+<p>At this point it is quite clear what this function does. We loop over the bitmap, setting the bomb flag <code class="language-plaintext highlighter-rouge">0x80</code> at random using <code class="language-plaintext highlighter-rouge">rand</code>. We see the bitmap stride <code class="language-plaintext highlighter-rouge">32 * Y + X</code>, with <code class="language-plaintext highlighter-rouge">X</code> and <code class="language-plaintext highlighter-rouge">Y</code> starting at <code class="language-plaintext highlighter-rouge">1</code>. With this information, we are able to read the bitmap and check for bomb flags.</p>
 
 <figure class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="kt">void</span> <span class="nf">loop_draw_esp</span><span class="p">(</span><span class="n">u8</span><span class="o">*</span> <span class="n">game</span><span class="p">)</span>
 <span class="p">{</span>

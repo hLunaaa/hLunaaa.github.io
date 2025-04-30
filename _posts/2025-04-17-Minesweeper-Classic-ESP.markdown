@@ -14,7 +14,7 @@ By cross referencing where these are used we find multiple functions. Some store
 
 ![](/assets/{FB211914-8E66-435F-9BAD-01036C06A600}.png)
 
-At this point it is quite clear what this function does. We loop over the bitmap, setting the bomb flag `0x80` at random using `rand`. We also see the bitmap stride `32 * Y + X`, with `X` and `Y` starting at `1`. With this information, we are able to read the bitmap and check for bomb flags.
+At this point it is quite clear what this function does. We loop over the bitmap, setting the bomb flag `0x80` at random using `rand`. We see the bitmap stride `32 * Y + X`, with `X` and `Y` starting at `1`. With this information, we are able to read the bitmap and check for bomb flags.
 
 {% highlight C++ %}
 void loop_draw_esp(u8* game)
