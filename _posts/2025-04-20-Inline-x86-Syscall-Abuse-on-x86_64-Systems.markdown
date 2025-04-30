@@ -4,6 +4,16 @@ title:  "Inline x86 Syscall Abuse on x86_64 Systems"
 date:   2025-04-20 05:12:41 +0200
 ---
 
+<br>
+### Rationale
+
+Malware and cheats often call system API to do things. Calls like `VirtualAlloc` and `VirtualProtect` are routed through `NtAllocateVirtualMemory` and `NtProtectVirtualMemory` after some user mode checks in `Kernel32.dll`. However, using the highest level API can fall victim to user mode hooks.
+
+For example, instrumentation callbacks are set using `NtSetInformationProcess`. By using the info class `ProcessInstrumentationCallback` & passing a `PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION` structure containing a callback function, we handle all syscalls coming from all threads. We can also use `TLS` and examine the return address and arguments of all syscalls, storing context as we do so.
+
+
+<br>
+### Briefly on Syscalls
 When we perform a `syscall`, we request that the OS do something. On Windows version `NT6+`, these system calls are implemented in `ntoskrnl` and `win32k` in exported tables [`KiServiceTables`](https://hfiref0x.github.io/X86_64/NT6_syscalls.html) and [`W32pServiceTables`](https://hfiref0x.github.io/X86_64/NT6_w32ksyscalls.html) respectively.
 
 We can use syscalls to bridge the user-kernel gap not covered by public APIs, though many opaque routines are mirrored renames of syscalls, often with some error checking and so on. The majority of syscalls are trampolined via `ntdll`. We disassemble any x86 syscall.
@@ -57,4 +67,8 @@ u32 nt_make_call(arg_t... args)
 }
 {% endhighlight %}
 
-With this method, we are able to call syscalls on the go without calling the `ntdll` trampoline methods. I leave further analysis of `Wow64Transition` as an exercise to the reader.
+<br>
+### Conclusion
+With this method, we are able to call syscalls on the go without calling the `ntdll` trampoline methods. I leave further analysis of `Wow64Transition` as an exercise to the reader. The bottom line is that we are able to implement syscalling trivially, effectively getting around many of the checks and balances that would otherwise catch us - such as those previously mentioned.
+
+Similar methods are available in 64-bit, but the technique must be somewhat adapted. I leave this, too, as an exercise to the reader. Syscalls are a very interesting mechanic of operating system design.

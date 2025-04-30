@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="Inline x86 Syscall Abuse on x86_64 Systems" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="When we perform a syscall, we request that the OS do something. On Windows version NT6+, these system calls are implemented in ntoskrnl and win32k in exported tables KiServiceTables and W32pServiceTables respectively." />
-<meta property="og:description" content="When we perform a syscall, we request that the OS do something. On Windows version NT6+, these system calls are implemented in ntoskrnl and win32k in exported tables KiServiceTables and W32pServiceTables respectively." />
+<meta name="description" content="Rationale" />
+<meta property="og:description" content="Rationale" />
 <link rel="canonical" href="http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html" />
 <meta property="og:url" content="http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html" />
 <meta property="og:site_name" content="hLunaaa" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Inline x86 Syscall Abuse on x86_64 Systems" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-20T05:12:41+02:00","datePublished":"2025-04-20T05:12:41+02:00","description":"When we perform a syscall, we request that the OS do something. On Windows version NT6+, these system calls are implemented in ntoskrnl and win32k in exported tables KiServiceTables and W32pServiceTables respectively.","headline":"Inline x86 Syscall Abuse on x86_64 Systems","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html"},"url":"http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-20T05:12:41+02:00","datePublished":"2025-04-20T05:12:41+02:00","description":"Rationale","headline":"Inline x86 Syscall Abuse on x86_64 Systems","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html"},"url":"http://localhost:4000/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="hLunaaa" /></head>
 <body><header class="site-header" role="banner">
@@ -47,7 +47,16 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>When we perform a <code class="language-plaintext highlighter-rouge">syscall</code>, we request that the OS do something. On Windows version <code class="language-plaintext highlighter-rouge">NT6+</code>, these system calls are implemented in <code class="language-plaintext highlighter-rouge">ntoskrnl</code> and <code class="language-plaintext highlighter-rouge">win32k</code> in exported tables <a href="https://hfiref0x.github.io/X86_64/NT6_syscalls.html"><code class="language-plaintext highlighter-rouge">KiServiceTables</code></a> and <a href="https://hfiref0x.github.io/X86_64/NT6_w32ksyscalls.html"><code class="language-plaintext highlighter-rouge">W32pServiceTables</code></a> respectively.</p>
+    <p><br /></p>
+<h3 id="rationale">Rationale</h3>
+
+<p>Malware and cheats often call system API to do things. Calls like <code class="language-plaintext highlighter-rouge">VirtualAlloc</code> and <code class="language-plaintext highlighter-rouge">VirtualProtect</code> are routed through <code class="language-plaintext highlighter-rouge">NtAllocateVirtualMemory</code> and <code class="language-plaintext highlighter-rouge">NtProtectVirtualMemory</code> after some user mode checks in <code class="language-plaintext highlighter-rouge">Kernel32.dll</code>. However, using the highest level API can fall victim to user mode hooks.</p>
+
+<p>For example, instrumentation callbacks are set using <code class="language-plaintext highlighter-rouge">NtSetInformationProcess</code>. By using the info class <code class="language-plaintext highlighter-rouge">ProcessInstrumentationCallback</code> &amp; passing a <code class="language-plaintext highlighter-rouge">PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION</code> structure containing a callback function, we handle all syscalls coming from all threads. We can also use <code class="language-plaintext highlighter-rouge">TLS</code> and examine the return address and arguments of all syscalls, storing context as we do so.</p>
+
+<p><br /></p>
+<h3 id="briefly-on-syscalls">Briefly on Syscalls</h3>
+<p>When we perform a <code class="language-plaintext highlighter-rouge">syscall</code>, we request that the OS do something. On Windows version <code class="language-plaintext highlighter-rouge">NT6+</code>, these system calls are implemented in <code class="language-plaintext highlighter-rouge">ntoskrnl</code> and <code class="language-plaintext highlighter-rouge">win32k</code> in exported tables <a href="https://hfiref0x.github.io/X86_64/NT6_syscalls.html"><code class="language-plaintext highlighter-rouge">KiServiceTables</code></a> and <a href="https://hfiref0x.github.io/X86_64/NT6_w32ksyscalls.html"><code class="language-plaintext highlighter-rouge">W32pServiceTables</code></a> respectively.</p>
 
 <p>We can use syscalls to bridge the user-kernel gap not covered by public APIs, though many opaque routines are mirrored renames of syscalls, often with some error checking and so on. The majority of syscalls are trampolined via <code class="language-plaintext highlighter-rouge">ntdll</code>. We disassemble any x86 syscall.</p>
 
@@ -98,7 +107,11 @@
   <span class="k">return</span> <span class="n">ret_status</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<p>With this method, we are able to call syscalls on the go without calling the <code class="language-plaintext highlighter-rouge">ntdll</code> trampoline methods. I leave further analysis of <code class="language-plaintext highlighter-rouge">Wow64Transition</code> as an exercise to the reader.</p>
+<p><br /></p>
+<h3 id="conclusion">Conclusion</h3>
+<p>With this method, we are able to call syscalls on the go without calling the <code class="language-plaintext highlighter-rouge">ntdll</code> trampoline methods. I leave further analysis of <code class="language-plaintext highlighter-rouge">Wow64Transition</code> as an exercise to the reader. The bottom line is that we are able to implement syscalling trivially, effectively getting around many of the checks and balances that would otherwise catch us - such as those previously mentioned.</p>
+
+<p>Similar methods are available in 64-bit, but the technique must be somewhat adapted. I leave this, too, as an exercise to the reader. Syscalls are a very interesting mechanic of operating system design.</p>
 
   </div><a class="u-url" href="/2025/04/20/Inline-x86-Syscall-Abuse-on-x86_64-Systems.html" hidden></a>
 </article>
