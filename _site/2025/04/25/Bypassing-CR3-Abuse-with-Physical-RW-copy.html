@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="Bypassing CR3 Abuse with Physical R/W" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Some kernel mode anti-cheat solutions have now begun to obscure KPROCESS.DirectoryTableBase by effectively moving the address space via page table manipulation on startup. This prevents attaching to the real process space and makes it slightly more difficult for cheats and malware to to read/write the protected memory." />
-<meta property="og:description" content="Some kernel mode anti-cheat solutions have now begun to obscure KPROCESS.DirectoryTableBase by effectively moving the address space via page table manipulation on startup. This prevents attaching to the real process space and makes it slightly more difficult for cheats and malware to to read/write the protected memory." />
+<meta name="description" content="Rationale" />
+<meta property="og:description" content="Rationale" />
 <link rel="canonical" href="http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html" />
 <meta property="og:url" content="http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html" />
 <meta property="og:site_name" content="hLunaaa" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Bypassing CR3 Abuse with Physical R/W" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-25T09:12:29+02:00","datePublished":"2025-04-25T09:12:29+02:00","description":"Some kernel mode anti-cheat solutions have now begun to obscure KPROCESS.DirectoryTableBase by effectively moving the address space via page table manipulation on startup. This prevents attaching to the real process space and makes it slightly more difficult for cheats and malware to to read/write the protected memory.","headline":"Bypassing CR3 Abuse with Physical R/W","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html"},"url":"http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-25T09:12:29+02:00","datePublished":"2025-04-25T09:12:29+02:00","description":"Rationale","headline":"Bypassing CR3 Abuse with Physical R/W","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html"},"url":"http://localhost:4000/2025/04/25/Bypassing-CR3-Abuse-with-Physical-RW-copy.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="hLunaaa" /></head>
 <body><header class="site-header" role="banner">
@@ -47,11 +47,17 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>Some kernel mode anti-cheat solutions have now begun to obscure <code class="language-plaintext highlighter-rouge">KPROCESS.DirectoryTableBase</code> by effectively moving the address space via page table manipulation on startup. This prevents attaching to the real process space and makes it slightly more difficult for cheats and malware to to read/write the protected memory.</p>
+    <p><br /></p>
+<h3 id="rationale">Rationale</h3>
+
+<p>Some kernel mode anti-cheat solutions have now begun to obscure <code class="language-plaintext highlighter-rouge">KPROCESS.DirectoryTableBase</code> by effectively moving the address space via page table manipulation on startup. This prevents attaching to the real process space and makes it slightly more difficult for cheats and malware to to read/write the protected memory.</p>
 
 <p>The problem? User processes were realistically already not able to interact with the protected memory, and kernel drivers and hypervisors have access to the underlying physical memory. Currently <code class="language-plaintext highlighter-rouge">EAC</code> and <code class="language-plaintext highlighter-rouge">VKG</code> implement some form of <code class="language-plaintext highlighter-rouge">CR3</code> abuse, but using monkey bruteforce™ we can walk all physical ranges and parse the <code class="language-plaintext highlighter-rouge">PML4</code>.</p>
 
 <p>In theory, this can also be achieved from user mode as page tables are mapped to virtual memory with some assistance. We can even force a <code class="language-plaintext highlighter-rouge">TLB</code> flush using <code class="language-plaintext highlighter-rouge">SwitchToThread()</code>. The method relies on finding the self-referencing <code class="language-plaintext highlighter-rouge">PML4</code> entry, so the caller must have some level of access to the underlying physical memory, or leak non-exported names like <code class="language-plaintext highlighter-rouge">MmPteBase</code>, <code class="language-plaintext highlighter-rouge">MmPdeBase</code> and <code class="language-plaintext highlighter-rouge">MmPfnDatabase</code> which are used internally. More closely studying <code class="language-plaintext highlighter-rouge">MmGetVirtualForPhysical()</code> is recommended.</p>
+
+<p><br /></p>
+<h3 id="technique-to-find-directory-table">Technique to Find Directory Table</h3>
 
 <p>We first cache the physical memory ranges. Here we can either call <code class="language-plaintext highlighter-rouge">MmGetPhysicalMemoryRanges()</code> or implement the same behavior ourselves. The <a href="https://doxygen.reactos.org/d1/d6d/dynamic_8c.html#a4d2191536acfdbcab710579f81193527">ReactOS</a> source can help provide context, but obviously look at the disassembly of <code class="language-plaintext highlighter-rouge">MiReferencePageRuns()</code> as well.</p>
 
@@ -77,42 +83,43 @@
     <span class="n">u64</span> <span class="n">src</span> <span class="o">=</span> <span class="p">(</span><span class="n">u64</span><span class="p">)(</span><span class="n">physical_range</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">);</span>
     <span class="n">u64</span> <span class="n">dst</span> <span class="o">=</span> <span class="p">(</span><span class="n">u64</span><span class="p">)(</span><span class="n">physical_range</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">u64</span><span class="p">)(</span><span class="n">physical_range</span><span class="o">-&gt;</span><span class="n">NumberOfBytes</span><span class="p">);</span>
 
-    <span class="k">for</span> <span class="p">(</span><span class="n">u64</span> <span class="n">it</span> <span class="o">=</span> <span class="n">src</span><span class="p">;</span> <span class="n">it</span> <span class="o">&lt;</span> <span class="n">dst</span><span class="p">;</span> <span class="n">it</span> <span class="o">+=</span> <span class="n">PAGE_SIZE</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">u64</span> <span class="n">it</span> <span class="o">=</span> <span class="n">src</span><span class="p">;</span> <span class="n">it</span> <span class="o">&lt;</span> <span class="n">dst</span><span class="p">;</span> <span class="n">it</span> <span class="o">+=</span> <span class="n">PAGE_SIZE</span><span class="p">)</span> 
+    <span class="k">for</span> <span class="p">(</span><span class="n">u32</span> <span class="n">pml4e_idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">pml4e_idx</span> <span class="o">&lt;</span> <span class="mi">512</span><span class="p">;</span> <span class="n">pml4e_idx</span><span class="o">++</span><span class="p">)</span>
     <span class="p">{</span>
-      <span class="k">for</span> <span class="p">(</span><span class="n">u32</span> <span class="n">pml4e_idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">pml4e_idx</span> <span class="o">&lt;</span> <span class="mi">512</span><span class="p">;</span> <span class="n">pml4e_idx</span><span class="o">++</span><span class="p">)</span>
-      <span class="p">{</span>
-        <span class="k">auto</span> <span class="n">self_ref</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml4e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">it</span> <span class="o">+</span> <span class="n">pml4e_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml4e_t</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">it</span> <span class="o">!=</span> <span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">self_ref</span><span class="p">.</span><span class="n">pfn</span><span class="p">))</span> <span class="c1">// self-ref?</span>
-          <span class="k">continue</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="n">self_ref</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml4e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">it</span> <span class="o">+</span> <span class="n">pml4e_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml4e_t</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">it</span> <span class="o">!=</span> <span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">self_ref</span><span class="p">.</span><span class="n">pfn</span><span class="p">))</span> <span class="c1">// self-ref?</span>
+        <span class="k">continue</span><span class="p">;</span>
 
-        <span class="c1">// ok - attempt translation</span>
-        <span class="k">auto</span> <span class="n">pml4e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml4e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">it</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml4_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml4e_t</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml4e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
-          <span class="k">break</span><span class="p">;</span> <span class="c1">// bad cr3, check next page...</span>
+      <span class="c1">// ok - attempt translation</span>
+      <span class="k">auto</span> <span class="n">pml4e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml4e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">it</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml4_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml4e_t</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml4e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span> <span class="c1">// bad cr3, check next page...</span>
 
-        <span class="k">auto</span> <span class="n">pml3e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml3e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml4e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml3_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml3e_t</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml3e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
-          <span class="k">break</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="n">pml3e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml3e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml4e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml3_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml3e_t</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml3e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
 
-        <span class="k">auto</span> <span class="n">pml2e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml2e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml3e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml2_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml2e_t</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml2e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
-          <span class="k">break</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="n">pml2e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml2e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml3e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml2_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml2e_t</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml2e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
 
-        <span class="k">auto</span> <span class="n">pml1e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml1e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml2e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml1_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml1e_t</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml1e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
-          <span class="k">break</span><span class="p">;</span>
-        
-        <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="o">&lt;</span><span class="n">u16</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml1e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">!=</span> <span class="err">'</span><span class="n">ZM</span><span class="err">'</span><span class="p">)</span> <span class="c1">// check PE magic</span>
-          <span class="k">break</span><span class="p">;</span>
-        
-        <span class="k">return</span> <span class="n">_page_to_pfn</span><span class="p">(</span><span class="n">it</span><span class="p">);</span> <span class="c1">// found cr3!</span>
-      <span class="p">}</span>
+      <span class="k">auto</span> <span class="n">pml1e</span> <span class="o">=</span> <span class="n">read</span><span class="o">&lt;</span><span class="n">pml1e_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml2e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">pml1_idx</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pml1e_t</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pml1e</span><span class="p">.</span><span class="n">present</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
+      
+      <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="o">&lt;</span><span class="n">u16</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_pfn_to_page</span><span class="p">(</span><span class="n">pml1e</span><span class="p">.</span><span class="n">pfn</span><span class="p">)</span> <span class="o">+</span> <span class="n">mz_base</span><span class="p">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">!=</span> <span class="err">'</span><span class="n">ZM</span><span class="err">'</span><span class="p">)</span> <span class="c1">// check PE magic</span>
+        <span class="k">break</span><span class="p">;</span>
+      
+      <span class="k">return</span> <span class="n">_page_to_pfn</span><span class="p">(</span><span class="n">it</span><span class="p">);</span> <span class="c1">// found cr3!</span>
     <span class="p">}</span>
     <span class="n">physical_range</span><span class="o">++</span><span class="p">;</span>
   <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">physical_range</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">);</span>
 <span class="p">}</span></code></pre></figure>
 
-<p>There’s a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept.</p>
+<p><br /></p>
+<h3 id="the-result">The Result</h3>
+
+<p>There’s a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept. Keep in mind that the latest <code class="language-plaintext highlighter-rouge">Virtualization Based Security</code> or <code class="language-plaintext highlighter-rouge">VBS</code> enforces read-only state at the hypervisor level via <code class="language-plaintext highlighter-rouge">Second Level Address Translation</code> or <code class="language-plaintext highlighter-rouge">SLAT</code>.</p>
 
 <p><img src="/assets/image2.png" alt="Driver Output" /></p>
 
