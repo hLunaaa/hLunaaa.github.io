@@ -78,6 +78,6 @@ u64 mm_find_process_cr3(EPROCESS* proc)
 <br>
 ### The Result
 
-There's a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept. Keep in mind that the latest `Virtualization Based Security` or `VBS` enforces read-only state at the hypervisor level via `Second Level Address Translation` or `SLAT`.
+There's a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept. Keep in mind that the latest `Virtualization Based Security` or `VBS` enforces read-only state at the hypervisor level via `Second Level Address Translation` or `SLAT`. However, other values like page frame number remain unprotected. This will be discussed in a separate post in the future.
 
 ![Driver Output](/assets/image2.png)

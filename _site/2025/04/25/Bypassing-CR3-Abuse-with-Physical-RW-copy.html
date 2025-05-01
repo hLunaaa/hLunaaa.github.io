@@ -119,7 +119,7 @@
 <p><br /></p>
 <h3 id="the-result">The Result</h3>
 
-<p>There’s a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept. Keep in mind that the latest <code class="language-plaintext highlighter-rouge">Virtualization Based Security</code> or <code class="language-plaintext highlighter-rouge">VBS</code> enforces read-only state at the hypervisor level via <code class="language-plaintext highlighter-rouge">Second Level Address Translation</code> or <code class="language-plaintext highlighter-rouge">SLAT</code>.</p>
+<p>There’s a lot more you can do in the way of filtering out bad pages before running expensive read operations, but I leave this as an exercise to the reader. In any case, this serves as a good proof of concept. Keep in mind that the latest <code class="language-plaintext highlighter-rouge">Virtualization Based Security</code> or <code class="language-plaintext highlighter-rouge">VBS</code> enforces read-only state at the hypervisor level via <code class="language-plaintext highlighter-rouge">Second Level Address Translation</code> or <code class="language-plaintext highlighter-rouge">SLAT</code>. However, other values like page frame number remain unprotected. This will be discussed in a separate post in the future.</p>
 
 <p><img src="/assets/image2.png" alt="Driver Output" /></p>
 
